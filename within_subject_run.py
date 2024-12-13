@@ -138,6 +138,7 @@ for i in range(len(SUBJECTS)):
     start_time = time.time()
     for state in brainstates:
         for model in model_list:
+            start_time = time.time()
             CORR = []
             CORR_TIME = []
             R2_score = []
@@ -165,4 +166,4 @@ for i in range(len(SUBJECTS)):
             plt.show()
             stats_dict[f'{model}-Subject{subject}-{state}'] = CORR_Df
             np.save('stats_dict_within_subject.npy',stats_dict, allow_pickle=True)
-        print(f"Runtime for one state with all 3 models: {time.time() - start_time}s")
+            print(f"Runtime for Model {model}: {time.time() - start_time}s")
