@@ -34,6 +34,7 @@ overall_min = math.floor(overall_min)
 
 #%%
 for subject in SUBJECTS:
+
     plt.figure(figsize=(30,15))
     plt_idx = 1
     for state in brainstates:

@@ -133,10 +133,15 @@ for i in range(len(SUBJECTS)):
 
 #%%
 for i in range(len(SUBJECTS)):
+    if i <  3:
+        continue
     subject = SUBJECTS[i]
     subject_task_list = matching_cur_task_list[i]
     start_time = time.time()
     for state in brainstates:
+        if subject == '04' and state in ['tsCAP1','tsCAP2','tsCAP3','tsCAP4']:
+            continue
+
         for model in model_list:
             start_time = time.time()
             CORR = []
