@@ -146,7 +146,14 @@ for task_idx in range(len(tasks_list)):
         if cur_task == 'dme_run' and 'ts' in state or state in ['yeo7net1','yeo7net2']:
             continue
         for model in model_list:
-            if cur_task == 'dme_run' and state == 'yeo7net3' and model in ['ridge','rf']:
+            if (
+                    cur_task == 'dme_run' and
+                    (
+                            'ts' in state or
+                            'yeo7' in state or
+                            state == 'yeo17net1'
+                    )
+            ):
                 continue
             CORR = []
             CORR_TIME = []
