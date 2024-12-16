@@ -61,13 +61,18 @@ def Data_Handeler(key,brain_state,window=12,mask_thr = 0.75):
     return PUPIL_DF,FMRI,TIME
 
 #%%
-def Train_Test(test_subject_idx,available_list,state, time = False,model = 'ridge'):
+def Cross_Train_Test(test_subject_idx,test_task_available_list,train_task_available_list,state, time = False,model = 'ridge'):
     PUPIL_ALL = []
     FMRI_ALL = []
     TIME_ALL = []
-    for i in range(len(available_list)):
-        id_list = available_list[i]
+    test_sub_name = test_task_available_list[test_subject_idx][0]
+
+    # Gathering training data
+    for i in range(len(train_task_available_list)):
+        id_list = train_task_available_list[i]
         sub_id = id_list[0]
+        if sub_id == test_sub_name:
+            continue
         cur_key_list = id_list[1]
         PUPIL = []
         FMRI = []
@@ -81,18 +86,31 @@ def Train_Test(test_subject_idx,available_list,state, time = False,model = 'ridg
             TIME.extend(TIME_curkey)
         PUPIL = np.concatenate(PUPIL)
 
-        if i == test_subject_idx:
-            PUPIL_TEST = zscore(PUPIL,axis = 1)
-            FMRI_TEST = zscore(FMRI)
-            TIME_TEST = TIME
-        else:
-            PUPIL_ALL.append(PUPIL)
-            FMRI_ALL.extend(FMRI)
-            TIME_ALL.extend(TIME)
+        PUPIL_ALL.append(PUPIL)
+        FMRI_ALL.extend(FMRI)
+        TIME_ALL.extend(TIME)
 
-    PUPIL_TRAIN = zscore(np.concatenate(PUPIL_ALL),axis = 1)
+    PUPIL_TRAIN = zscore(np.concatenate(PUPIL_ALL), axis=1)
     FMRI_TRAIN = zscore(FMRI_ALL)
     TIME_TRAIN = TIME_ALL
+
+
+    # grab test data
+    cur_key_list = test_task_available_list[test_subject_idx][1]
+    PUPIL = []
+    FMRI = []
+    TIME = []
+    for key in cur_key_list:
+        PUPIL_curkey, FMRI_curkey, TIME_curkey = Data_Handeler(key, state, window=12, mask_thr=0.75)
+        PUPIL.append(PUPIL_curkey)
+        FMRI.extend(FMRI_curkey)
+        TIME.extend(TIME_curkey)
+    PUPIL = np.concatenate(PUPIL)
+    PUPIL_TEST = zscore(PUPIL, axis=1)
+    FMRI_TEST = zscore(FMRI)
+    TIME_TEST = TIME
+
+
     if model == 'ridge':
         reg = Ridge(alpha=1)
     if model == 'rf':
@@ -117,10 +135,10 @@ def Train_Test(test_subject_idx,available_list,state, time = False,model = 'ridg
 
 #%%
 try:
-    stats_dict = np.load('stats_dict_dmh_dme_within_movie.npy',allow_pickle=True).item()
+    stats_dict = np.load('stats_dict_dmh_dme_cross.npy',allow_pickle=True).item()
 except:
     stats_dict = {}
-tasks_list = ['dmh_run']
+tasks_list = ['dme_run','dmh_run']
 model_list = ['ridge','rf','morf']
 SUBJECTS = [str(i + 1).zfill(2) for i in range(22)]
 available_subjects_list_all_task = []
@@ -137,10 +155,19 @@ for task in tasks_list:
 
 
 #%%
-for task_idx in range(len(tasks_list)):
+for train_task_idx in range(len(tasks_list)):
     start_time = time.time()
-    cur_task = tasks_list[task_idx]
-    cur_task_available_list = available_subjects_list_all_task[task_idx]
+
+    # TODO hardcoding here
+    if train_task_idx == 0:
+        test_task_idx = 1
+    else:
+        test_task_idx = 0
+    train_task = tasks_list[train_task_idx]
+    test_task = tasks_list[test_task_idx]
+    train_task_available_list = available_subjects_list_all_task[train_task_idx]
+    test_task_available_list = available_subjects_list_all_task[test_task_idx]
+
     for state in brainstates:
         for model in model_list:
             CORR = []
@@ -148,14 +175,14 @@ for task_idx in range(len(tasks_list)):
             R2_score = []
             R2_score_TIME = []
             sub_idx_list = []
-            for i in range(len(cur_task_available_list)):
-                test_sub = cur_task_available_list[i][0]
+            for test_idx in range(len(test_task_available_list)):
+                test_sub = test_task_available_list[test_idx][0]
                 sub_idx_list.append(test_sub)
-                print(cur_task,model,state,test_sub)
-                _,_,FMRI_TEST,ypred,corr = Train_Test(i,cur_task_available_list,state,time = False,model = model)
+                print("Train:",train_task," Test:",test_task,model,state,test_sub)
+                _,_,FMRI_TEST,ypred,corr = Cross_Train_Test(test_idx,test_task_available_list,train_task_available_list,state,time = False,model = model)
                 R2_score.append(r2_score(FMRI_TEST,ypred))
                 CORR.append(corr)
-                _,_,FMRI_TEST_time,ypred_time,corr_time = Train_Test(i,cur_task_available_list,state,time = True,model = model)
+                _,_,FMRI_TEST_time,ypred_time,corr_time = Cross_Train_Test(test_idx,test_task_available_list,train_task_available_list,state,time = True,model = model)
                 CORR_TIME.append(corr_time)
                 R2_score_TIME.append(r2_score(FMRI_TEST_time,ypred_time))
 
@@ -169,8 +196,8 @@ for task_idx in range(len(tasks_list)):
             plt.xticks([0, 1,2,3],  ['R2_Score','R2_Score_Time','Corr','Corr_Time'])
             plt.ylim([-0.4,1])
             plt.yticks([-0.4,-0.2,0,0.2,0.4,0.6,0.8,1])
-            plt.title(f'{model} Correlation {cur_task} {state}')
+            plt.title(f'{model} Correlation Train: {train_task} Test: {test_task} {state}')
             plt.show()
-            stats_dict[f'{model}-{cur_task}-{state}'] = CORR_Df
-            np.save('stats_dict_dmh_dme_within_movie.npy',stats_dict)
+            stats_dict[f'{model}-train{train_task}-test{test_task}-{state}'] = CORR_Df
+            np.save('stats_dict_dmh_dme_cross.npy',stats_dict)
     print('time elapsed',time.time() - start_time)
