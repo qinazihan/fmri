@@ -157,6 +157,9 @@ for task in tasks_list:
 #%%
 for train_task_idx in range(len(tasks_list)):
     start_time = time.time()
+    # TODO Dec17 temp continue setting
+    if train_task_idx != 1:
+        continue
 
     # TODO hardcoding here
     if train_task_idx == 0:
@@ -169,7 +172,13 @@ for train_task_idx in range(len(tasks_list)):
     test_task_available_list = available_subjects_list_all_task[test_task_idx]
 
     for state in brainstates:
+        # TODO Dec17 temp continue setting
+        if state not in ['tsCAP6', 'tsCAP7', 'tsCAP8']:
+            continue
         for model in model_list:
+            # TODO Dec17 temp continue setting
+            if state == 'tsCAP6' and model != 'morf':
+                continue
             CORR = []
             CORR_TIME = []
             R2_score = []
