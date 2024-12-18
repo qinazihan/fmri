@@ -15,6 +15,7 @@ import time
 from library.time_func import *
 
 
+
 #%%
 print(os.getcwd())
 data = np.load('group_data_natview_data_fmri_eyetracking1hz.npy',allow_pickle=True)
